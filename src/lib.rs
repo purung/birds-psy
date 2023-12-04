@@ -6,6 +6,7 @@ pub mod error_template;
 pub mod fileserv;
 #[cfg(feature = "ssr")]
 pub mod auth;
+pub mod push;
 
 cfg_if! { if #[cfg(feature = "hydrate")] {
     use leptos::*;
