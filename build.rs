@@ -7,7 +7,7 @@ fn main() {
         use std::fs::File;
         use std::io::Write;
         use std::path::Path;
-        use ulid::Ulid;
+        // use ulid::Ulid;
 
         let version = env::var("CARGO_PKG_VERSION").expect("CARGO_PKG_VERSION not set");
         let profile = env::var("PROFILE").expect("CARGO PROFILE NOT SET");
@@ -15,7 +15,7 @@ fn main() {
         let version = if matches!(profile.as_str(), "release") {
             version
         } else {
-            Ulid::new().to_string()
+            return
         };
 
         use sailfish::TemplateOnce;

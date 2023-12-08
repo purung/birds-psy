@@ -64,6 +64,7 @@
               targets = [ "wasm32-unknown-unknown" ];
             }))
           ];
+          LD_LIBRARY_PATH = lib.makeLibraryPath [ openssl ];
 
           shellHook = ''
             '';

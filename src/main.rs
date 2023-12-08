@@ -60,8 +60,6 @@ async fn main() {
         )
         .allow_methods([Method::POST, Method::GET]);
 
-    info!("{:?}", cors_layer);
-
     // build our application with a route
     let app = Router::new()
         .route(

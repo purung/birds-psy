@@ -18,6 +18,9 @@ self.addEventListener('install', event => {
     console.log('Service Worker: Installing...');
 
     // Cache assets
+    if (CURRENT_CACHE === "DEV") {
+        return
+    };
     event.waitUntil(
         caches.open(CURRENT_CACHE)
             .then(cache => {
@@ -26,7 +29,7 @@ self.addEventListener('install', event => {
             })
             .then(() => {
                 // 3. Automatic Activation - Uncomment next line to enable
-                // self.skipWaiting();
+                self.skipWaiting();
             })
             .catch(err => console.error('Service Worker: Caching failed with ' + err))
     );

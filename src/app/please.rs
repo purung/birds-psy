@@ -23,7 +23,6 @@ fn reject_strangers() -> Option<User> {
     Some(u)
 }
 
-
 #[async_trait]
 pub trait Communicate<Subject, Dialect>
 where
@@ -41,7 +40,9 @@ where
 use leptos::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use tracing::info;
 use ulid::Ulid;
+
 
 use super::{Contact, MaybeUser, User};
 
@@ -89,4 +90,12 @@ pub async fn current_user() -> Result<User, ServerFnError> {
 #[server]
 pub async fn perhaps_user() -> Result<MaybeUser, ServerFnError> {
     use_context::<MaybeUser>().ok_or(EyeError::AuthError.into())
+}
+
+#[server(prefix = "/api", endpoint = "push-me")]
+pub async fn subscribe_to_push(json: String) -> Result<(), ServerFnError> {
+    use web_push::SubscriptionInfo;
+    let info: SubscriptionInfo = serde_json::from_str(&json).unwrap();
+    info!("Recieved a push subscription: {:?}", info);
+    Ok(())
 }

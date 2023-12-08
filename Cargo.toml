@@ -44,10 +44,12 @@ once_cell = { version = "1.18.0", optional = true }
 strum = { version = "0.25.0", features = ["derive"] }
 pasetors = { version = "0.6.7", optional = true, features = ["paserk"] }
 anyhow = "1.0.75"
-web-sys = { version = "0.3", features = ["PushManager", "PushSubscriptionOptionsInit", "PushSubscription"] }
+web-sys = { version = "0.3", features = ["PushSubscriptionJson", "PushManager", "PushSubscriptionOptionsInit", "PushSubscription"] }
 wasm-bindgen-futures = { version = "0.4" }
 base64 = "0.21.5"
 js-sys = "0.3.66"
+serde_json = { version = "1.0.108", optional = true }
+web-push = { version = "0.10.0", optional = true }
 # leptos_animated_for = version = "0.0.4", features = ["ssr"] }
 
 [features]
@@ -69,6 +71,8 @@ ssr = [
     "dep:tower-cookies",
     "dep:once_cell",
     "dep:pasetors",
+    "dep:serde_json",
+    "dep:web-push",
 ]
 
 

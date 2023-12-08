@@ -1,13 +1,86 @@
+
+use js_sys::JSON;
 use leptos::*;
+use leptos::spawn_local;
 use leptos_icons::*;
 
 // use leptos_animated_for::AnimatedFor;
 use leptos_router::ActionForm;
+use leptos_use::use_service_worker;
+use leptos_use::UseServiceWorkerReturn;
 
 use crate::app::all_contact_requests;
 use crate::app::please::*;
+use crate::push;
+
 
 use super::Contact;
+
+#[component]
+pub fn Updates() -> impl IntoView {
+    let the_moment_has_come = RwSignal::new(false);
+    create_effect(move |_| the_moment_has_come.set(true));
+
+    // show_class="opacity-100 duration-1000 transition transform -translate-y-20"
+    // hide_class="transform transition translate-y-20  opacity-0"
+    view! {
+        <Show
+            when=the_moment_has_come
+        >
+            <AskAboutUpdates />
+        </Show>
+
+    }
+}
+
+#[component]
+pub fn AskAboutUpdates() -> impl IntoView {
+    use crate::push::*;
+    let UseServiceWorkerReturn { registration, .. } = use_service_worker();
+    let permission = RwSignal::new(NotificationPermission::Default);
+    let subscribe = push::create_action_create_or_update_subscription();
+    let request = move |_| {
+        spawn_local(async move {
+            permission.set(request_web_notification_permission().await);
+        })
+    };
+    let _should_ask = Signal::derive(move || match registration() {
+        Ok(_) => match permission() {
+            NotificationPermission::Default => true,
+            _ => false,
+        },
+        Err(_) => false,
+    });
+    create_effect(move |_| {
+        if let (Ok(rwreg), NotificationPermission::Granted) = (registration(), permission()) {
+            if let Ok(pm) = rwreg.push_manager() {
+                leptos::logging::log!("Init subscription!");
+                subscribe.dispatch(pm);
+            } else {
+                leptos::logging::log!("No push manager!")
+            }
+        }
+    });
+    create_effect(move |_| {
+        if let Some(Ok(subscription)) = subscribe.value().get() {
+            leptos::logging::log!("Init registration of subscription!");
+            let json = subscription.to_json().unwrap();
+            let json = JSON::stringify(&json).unwrap();
+            let json = json.as_string().unwrap();
+            leptos::logging::log!("About to send {:?}!", json);
+            spawn_local(async move {
+                subscribe_to_push(json).await;
+            })
+        } else {
+            leptos::logging::log!("Subscription not SomeOk!");
+        }
+    });
+    view! {
+        <Show when=move || true >
+            <button on:click=request class="btn btn-primary">"Få uppdateringar"</button>
+        </Show>
+    }
+}
 
 #[component]
 pub fn Login() -> impl IntoView {
