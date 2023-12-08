@@ -4,6 +4,6 @@ auto-format = false
 
 [language-server.rust-analyzer.config]
 cargo = { features = "all" }
-procMacro = { ignored = {  leptos_macro = ["component", "server"] } }
+procMacro = { ignored = {  leptos_macro = ["server"] } }
 # rustfmt = {  overrideCommand = ["leptosfmt", "--stdin", "--rustfmt"]  } 
   
