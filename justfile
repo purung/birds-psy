@@ -1,5 +1,5 @@
 dev:
 	zellij run -f -- direnv exec . cargo-leptos watch --hot-reload
 
-pg:
+docker:
 	zellij run -f -- direnv exec . docker compose up 

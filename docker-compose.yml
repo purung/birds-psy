@@ -12,3 +12,18 @@ services:
       - "5432:5432"
     volumes:
       - ./data:/var/lib/postgresql/data
+  birds-psy:
+    build: .
+    # If the Dockerfile is in a different directory, use:
+    # build:
+    #   context: ./path_to_dockerfile_directory
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/pgdb 
+    env_file:
+      - .env
+    ports:
+      - "3000:8080"
+    # Additional configuration like ports and volumes can be added here if needed
