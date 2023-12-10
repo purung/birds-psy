@@ -34,7 +34,7 @@ static ENTRY_PHRASE: Lazy<HashMap<User, String>> = Lazy::new(|| {
     book
 });
 
-const HOUR: cookie::time::Duration = cookie::time::Duration::seconds(60 * 60);
+const FIVE_HOUR: cookie::time::Duration = cookie::time::Duration::seconds(60 * 60 * 5);
 const COOKIE_NAME: &str = "passauth";
 static SYMMETRIC_KEY: Lazy<SymmetricKey<V4>> = Lazy::new(|| {
     let key = env::var("COOKIE_SYMMETRIC_KEY").expect("cookie key to be set in the environment");
@@ -79,7 +79,7 @@ pub async fn confirm_login_for(user: String, password: String) -> Result<(), Aut
 
 fn _bake_cookie<'c>(value: String, options: LeptosOptions) -> Cookie<'c> {
     let cookie = Cookie::build(COOKIE_NAME, value)
-        .max_age(HOUR)
+        .max_age(FIVE_HOUR)
         .expires(hour_long_expires())
         .http_only(true)
         .path("/");
@@ -127,7 +127,7 @@ impl TryInto<Claims> for User {
     type Error = AuthError;
 
     fn try_into(self) -> Result<Claims, Self::Error> {
-        let duration = Duration::from_secs(60 * 60);
+        let duration = Duration::from_secs(60 * 60 * 5);
         let mut claims = Claims::new_expires_in(&duration)?;
 
         claims.subject(self.as_ref())?;
@@ -205,6 +205,6 @@ where
 
 fn hour_long_expires() -> cookie::time::OffsetDateTime {
     let mut updated_expires = cookie::time::OffsetDateTime::now_utc();
-    updated_expires += HOUR;
+    updated_expires += FIVE_HOUR;
     updated_expires
 }
