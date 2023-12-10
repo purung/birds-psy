@@ -8,6 +8,7 @@ async fn main() {
 
     use axum::routing::get;
     use axum::Router;
+    use birds_psy::push::transmit::PushClient;
     use birds_psy::app::*;
     use birds_psy::fileserv::file_and_error_handler;
     use http::{HeaderValue, Method};
@@ -16,7 +17,6 @@ async fn main() {
     use sqlx::{migrate, migrate::Migrator, postgres::PgPoolOptions};
     use tower_cookies::CookieManagerLayer;
     use tower_http::cors::CorsLayer;
-    use tracing::info;
 
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
 
@@ -46,10 +46,12 @@ async fn main() {
         .await
         .expect("migrations to run smoothly");
 
+
     let app_state = lpt::AppState {
         leptos_options,
         pool: pool.clone(),
         routes: routes.clone(),
+        push_client: PushClient::new().expect("Push client to initialise")
     };
     let cors_layer = CorsLayer::new()
         .allow_origin(
