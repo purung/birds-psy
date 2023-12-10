@@ -22,6 +22,7 @@ WORKDIR /app
 COPY . .
 
 # Build the app
+ENV PUSH_SERVER_PUBLIC_KEY=BF7RxoTqAfn6llZbrpMetglkxszn9ooUGsuhhLYjX4z_aCRHukxNCVdvWUd-C-2fa3p3HXyi1gbG71_zcMhQtdY
 RUN cargo leptos build --release -vv
 
 FROM rustlang/rust:nightly-bullseye-slim as runner
