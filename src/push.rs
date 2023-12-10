@@ -1,17 +1,17 @@
 use base64::Engine;
 use leptos::create_action;
-use leptos::create_local_resource;
+
 use leptos::Action;
-use leptos::Resource;
-use leptos::Signal;
-use leptos_use::ServiceWorkerRegistrationError;
+
+
+
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::PushManager;
 use web_sys::PushSubscription;
-use web_sys::ServiceWorkerRegistration;
 
-static PUSH_SERVER_PUBLIC_KEY: &'static str = env!("PUSH_SERVER_PUBLIC_KEY");
+
+static PUSH_SERVER_PUBLIC_KEY: &str = env!("PUSH_SERVER_PUBLIC_KEY");
 
 #[cfg(feature = "ssr")]
 pub mod transmit;
@@ -23,7 +23,7 @@ pub fn create_action_create_or_update_subscription(
         let pm = push_manager.clone();
         async move {
             let key = key_conversion(PUSH_SERVER_PUBLIC_KEY)
-                .map(|k| JsValue::from(k))
+                .map(JsValue::from)
                 .map_err(|_| JsValue::from_str("Could not convert public key"))?;
 
             let mut options = web_sys::PushSubscriptionOptionsInit::new();

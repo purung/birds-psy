@@ -38,7 +38,7 @@ where
     }
 );
 
-use js_sys::Atomics::notify;
+
 use leptos::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -108,7 +108,7 @@ pub async fn subscribe_to_push(json: String) -> Result<(), ServerFnError> {
 
 #[server(prefix = "/api", endpoint = "push-me-not")]
 pub async fn unsubscribe_to_push(json: String) -> Result<(), ServerFnError> {
-    if let Some(_) = reject_strangers() {
+    if reject_strangers().is_some() {
         use web_push::SubscriptionInfo;
         let info: SubscriptionInfo = serde_json::from_str(&json).unwrap();
         <(SubscriptionInfo, User)>::destroy(info.endpoint).await?;

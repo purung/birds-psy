@@ -1,5 +1,5 @@
 use js_sys::JSON;
-use leptos::leptos_config::Env;
+
 use leptos::spawn_local;
 use leptos::*;
 use leptos_icons::*;
@@ -43,7 +43,7 @@ pub fn PushCompability() -> impl IntoView {
     let UseServiceWorkerReturn { registration, .. } = use_service_worker();
     leptos::logging::log!("Push is supported: {}", supported());
     view! {
-        <Show when=move || supported() >
+        <Show when=supported >
             <AskAboutUpdates registration=registration />
         </Show>
     }
@@ -160,7 +160,7 @@ pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
     });
     view! {
         <button on:click=toggle_push type="button" class="btn btn-ghost text-primary btn-circle hover:text-accent">
-            <Show when=move||push_enabled() >
+            <Show when=push_enabled >
                 <Icon icon=Icon::from(IoIcon::IoNotificationsCircle) class="w-full h-full" />
             </Show>
             <Show when=move||!push_enabled() >

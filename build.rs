@@ -29,7 +29,7 @@ fn main() {
         let ctx = ServiceWorker { version };
         let str = ctx.render_once().expect("sw to generate");
         let path = Path::new("public/service-worker.js");
-        let mut file = File::create(&path).expect("Could not create file");
+        let mut file = File::create(path).expect("Could not create file");
         file.write_all(str.as_bytes()).expect("file to write");
         // ... file generation logic ...
     } else {
