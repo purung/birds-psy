@@ -182,6 +182,7 @@ pub fn Login() -> impl IntoView {
                         <input
                             name="user"
                             inputmode="text"
+                            autocomplete="username"
                             required
                             class="input input-bordered input-secondary w-full"
                         />
@@ -191,6 +192,7 @@ pub fn Login() -> impl IntoView {
                         <input
                             name="password"
                             type="password"
+                            autocomplete="current-password"
                             required
                             class="input input-bordered input-secondary w-full"
                         />
@@ -237,8 +239,8 @@ pub fn ContactCard(card: Contact, reversion: Callback<()>) -> impl IntoView {
             <input type="hidden" name="ulid" value=move || card.stamp.to_string() />
 
             <button type="submit" class="btn btn-md btn-circle text-base-100/60 hover:text-base-100 btn-ghost">
-        <Icon class="w-full h-full" icon=Icon::from(IoIcon::IoCheckmarkDoneCircleSharp) />
-        </button>
+                <Icon class="w-full h-full" icon=Icon::from(IoIcon::IoCheckmarkDoneCircleSharp) />
+            </button>
         </ActionForm>
             </div>
           </div>
@@ -263,7 +265,7 @@ pub fn CardCollection() -> impl IntoView {
                 </div>
              } >
 
-                <h1 class="text-3xl text-center text-primary m-12 font-bold">Uppringningslista</h1>
+                <h1 class="text-3xl select-none text-center text-primary m-12 font-bold">Uppringningslista</h1>
                 <div class="m-2 grid grid-cols-1 sm:grid-cols-2 w-fit xl:grid-cols-3 gap-4 max-w-screen-xl px-2 xl:px-0 mx-auto">
                      <For
                         each=cards
