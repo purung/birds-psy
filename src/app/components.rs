@@ -103,7 +103,7 @@ pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
                 let json = JSON::stringify(&json).unwrap();
                 let json = json.as_string().unwrap();
                 spawn_local(async move {
-                    unsubscribe_to_push(json).await; // Ta bort på servern
+                    let _ = unsubscribe_to_push(json).await; // Ta bort på servern
                 });
                 refresh_current_subscription()
             }
@@ -151,7 +151,7 @@ pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
             let json = JSON::stringify(&json).unwrap();
             let json = json.as_string().unwrap();
             spawn_local(async move {
-                subscribe_to_push(json).await;
+                let _ = subscribe_to_push(json).await;
             });
             refresh_current_subscription();
         } else {
