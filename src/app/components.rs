@@ -1,18 +1,22 @@
-
 use js_sys::JSON;
-use leptos::*;
+use leptos::leptos_config::Env;
 use leptos::spawn_local;
+use leptos::*;
 use leptos_icons::*;
 
 // use leptos_animated_for::AnimatedFor;
 use leptos_router::ActionForm;
 use leptos_use::use_service_worker;
+use leptos_use::use_supported;
+
+use leptos_use::ServiceWorkerRegistrationError;
 use leptos_use::UseServiceWorkerReturn;
+use wasm_bindgen::JsValue;
+use web_sys::ServiceWorkerRegistration;
 
 use crate::app::all_contact_requests;
 use crate::app::please::*;
 use crate::push;
-
 
 use super::Contact;
 
@@ -27,34 +31,113 @@ pub fn Updates() -> impl IntoView {
         <Show
             when=the_moment_has_come
         >
-            <AskAboutUpdates />
+            <PushCompability />
         </Show>
 
     }
 }
 
 #[component]
-pub fn AskAboutUpdates() -> impl IntoView {
-    use crate::push::*;
+pub fn PushCompability() -> impl IntoView {
+    let supported = use_supported(move || JsValue::from("PushManager").js_in(&window()));
     let UseServiceWorkerReturn { registration, .. } = use_service_worker();
-    let permission = RwSignal::new(NotificationPermission::Default);
+    leptos::logging::log!("Push is supported: {}", supported());
+    view! {
+        <Show when=move || supported() >
+            <AskAboutUpdates registration=registration />
+        </Show>
+    }
+}
+
+#[component]
+pub fn PushDemo() -> impl IntoView {
+    let action = create_server_action::<DemoPush>();
+    view! { 
+        <ActionForm action=action >
+            <button type="submit" class="btn btn-ghost btn-circle text-3xl">
+                "🚀"
+            </button>
+        </ActionForm>
+    }
+}
+
+type SwReg = Signal<Result<ServiceWorkerRegistration, ServiceWorkerRegistrationError>>;
+
+#[component]
+pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
+    // Har tillstånd & ingen subscribe
+    // Har inte tillstånd eller subscribe
+    // Har inte tillstånd men sub
+    use crate::push::*;
+    let permission = RwSignal::new(web_sys::Notification::permission().into());
     let subscribe = push::create_action_create_or_update_subscription();
-    let request = move |_| {
-        spawn_local(async move {
-            permission.set(request_web_notification_permission().await);
+    let unsubscribe = push::create_action_undo_subscription();
+    let current_subscription = push::create_action_see_subscription();
+    let push_enabled = Signal::derive(move || {
+        let curr = current_subscription.value();
+        with!(|curr, permission| {
+            if let (Some(Ok(_)), NotificationPermission::Granted) = (curr, permission) {
+                leptos::logging::log!("Push är igång");
+                return true;
+            } else {
+                leptos::logging::log!("Push är avstängt");
+                return false;
+            }
         })
+    });
+    let refresh_current_subscription = move || {
+        if let Ok(rw) = registration() {
+            if let Ok(pm) = rw.push_manager() {
+                leptos::logging::log!("Inspekterar nuvarande pushprenumeration");
+                current_subscription.dispatch(pm);
+            }
+        }
     };
-    let _should_ask = Signal::derive(move || match registration() {
-        Ok(_) => match permission() {
-            NotificationPermission::Default => true,
-            _ => false,
-        },
-        Err(_) => false,
+    let toggle_push = move |_| {
+        if push_enabled() {
+            // Det finns redan en push-prenumeration
+            if let Some(Ok(sub)) = current_subscription.value().get() {
+                leptos::logging::log!("Avslutar push");
+                unsubscribe.dispatch(sub.clone()); // Ta bort i browsern
+                let json = sub.to_json().unwrap();
+                let json = JSON::stringify(&json).unwrap();
+                let json = json.as_string().unwrap();
+                spawn_local(async move {
+                    unsubscribe_to_push(json).await; // Ta bort på servern
+                });
+                refresh_current_subscription()
+            }
+        } else {
+            // Det finns inte en push-prenumeration
+            // Men det finns tillåtelse att skicka notifikationer
+            leptos::logging::log!("Startar push");
+            if NotificationPermission::Granted == permission() {
+                if let Ok(rw) = registration() {
+                    if let Ok(pm) = rw.push_manager() {
+                        subscribe.dispatch(pm);
+                    }
+                }
+            } else {
+                // Be om tillåtelse att skicka notifikationer
+                spawn_local(async move {
+                    permission.set(request_web_notification_permission().await);
+                })
+            }
+        }
+    };
+    create_effect(move |_| {
+        refresh_current_subscription();
     });
     create_effect(move |_| {
-        if let (Ok(rwreg), NotificationPermission::Granted) = (registration(), permission()) {
+        leptos::logging::log!("Kör autopilot");
+
+        if let (Ok(rwreg), NotificationPermission::Granted, Some(Err(_))) = (
+            registration(),
+            permission(),
+            current_subscription.value().get_untracked(),
+        ) {
             if let Ok(pm) = rwreg.push_manager() {
-                leptos::logging::log!("Init subscription!");
+                leptos::logging::log!("Startar en ny pushprenumeration!");
                 subscribe.dispatch(pm);
             } else {
                 leptos::logging::log!("No push manager!")
@@ -63,22 +146,27 @@ pub fn AskAboutUpdates() -> impl IntoView {
     });
     create_effect(move |_| {
         if let Some(Ok(subscription)) = subscribe.value().get() {
-            leptos::logging::log!("Init registration of subscription!");
+            leptos::logging::log!("Lagrar automatiskt en ny prenumeration!");
             let json = subscription.to_json().unwrap();
             let json = JSON::stringify(&json).unwrap();
             let json = json.as_string().unwrap();
-            leptos::logging::log!("About to send {:?}!", json);
             spawn_local(async move {
                 subscribe_to_push(json).await;
-            })
+            });
+            refresh_current_subscription();
         } else {
             leptos::logging::log!("Subscription not SomeOk!");
         }
     });
     view! {
-        <Show when=move || true >
-            <button on:click=request class="btn btn-primary">"Få uppdateringar"</button>
-        </Show>
+        <button on:click=toggle_push type="button" class="btn btn-ghost text-primary btn-circle hover:text-accent">
+            <Show when=move||push_enabled() >
+                <Icon icon=Icon::from(IoIcon::IoNotificationsCircle) class="w-full h-full" />
+            </Show>
+            <Show when=move||!push_enabled() >
+                <Icon icon=Icon::from(IoIcon::IoNotificationsOffCircle) class="w-full h-full" />
+            </Show>
+        </button>
     }
 }
 
@@ -150,14 +238,14 @@ pub fn ContactCard(card: Contact, reversion: Callback<()>) -> impl IntoView {
             <p class="text-xs absolute right-0 top-0 p-4 text-secondary">{ human_ts }</p>
             <p class="my-6">{ card.special }</p>
             <div class="card-actions mt-24 justify-between content-center">
-        <a href=tel_link class="btn btn-ghost btn-md text-base-100/60 hover:text-base-100">
+        <a href=tel_link class="btn btn-ghost btn-circle text-base-100/60 hover:text-base-100">
         <Icon icon=Icon::from(IoIcon::IoCall) class="w-full h-full" />
         </a>
 
         <ActionForm action=dispose >
             <input type="hidden" name="ulid" value=move || card.stamp.to_string() />
 
-            <button type="submit" class="btn btn-md text-base-100/60 hover:text-base-100 btn-ghost">
+            <button type="submit" class="btn btn-md btn-circle text-base-100/60 hover:text-base-100 btn-ghost">
         <Icon class="w-full h-full" icon=Icon::from(IoIcon::IoCheckmarkDoneCircleSharp) />
         </button>
         </ActionForm>
@@ -183,6 +271,7 @@ pub fn CardCollection() -> impl IntoView {
                   <span>"Error! Task failed successfully."</span>
                 </div>
              } >
+
                 <h1 class="text-3xl text-center text-primary m-12 font-bold">Uppringningslista</h1>
                 <div class="m-2 grid grid-cols-1 sm:grid-cols-2 w-fit xl:grid-cols-3 gap-4 max-w-screen-xl px-2 xl:px-0 mx-auto">
                      <For

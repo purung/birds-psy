@@ -1,20 +1,22 @@
+
 use axum::{
     body::Body as AxumBody,
     extract::{FromRef, Path, RawQuery, State},
     response::{IntoResponse, Response},
 };
-use birds_psy::app::{App, MaybeUser};
+use birds_psy::{app::{App, MaybeUser}, push::transmit::PushClient};
 use http::{HeaderMap, Request};
 use leptos::{logging::log, provide_context, LeptosOptions};
 use leptos_axum::handle_server_fns_with_context;
 use leptos_router::RouteListing;
 use tower_cookies::Cookies;
 
-#[derive(FromRef, Debug, Clone)]
+#[derive(FromRef, Clone)]
 pub struct AppState {
     pub leptos_options: LeptosOptions,
     pub pool: sqlx::postgres::PgPool,
     pub routes: Vec<RouteListing>,
+    pub push_client: PushClient
 }
 
 pub async fn server_fn_handler(
@@ -37,6 +39,7 @@ pub async fn server_fn_handler(
             provide_context(app_state.leptos_options.clone());
             provide_context(maybeuser);
             provide_context(cookies.clone());
+            provide_context(app_state.push_client.clone())
         },
         request,
     )
@@ -57,6 +60,7 @@ pub async fn leptos_routes_handler(
             provide_context(app_state.leptos_options.clone());
             provide_context(maybeuser);
             provide_context(cookies.clone());
+            provide_context(app_state.push_client.clone())
         },
         App,
     );

@@ -39,13 +39,13 @@ impl Communicate<Contact, PgPool> for Contact {
         Ok(())
     }
 
-    async fn destroy(ulid: Ulid) -> Result<(), EyeError> {
+    async fn destroy(id: String) -> Result<(), EyeError> {
         sqlx::query(
             r#"
             delete from contact_request where uuid = $1
         "#,
         )
-        .bind(&ulid.to_string())
+        .bind(&id)
         .execute(&Self::power().await?)
         .await
         .unwrap();
@@ -109,13 +109,13 @@ impl Communicate<(SubscriptionInfo, User), PgPool> for (SubscriptionInfo, User) 
         Ok(())
     }
 
-    async fn destroy(ulid: Ulid) -> Result<(), EyeError> {
+    async fn destroy(id: String) -> Result<(), EyeError> {
         sqlx::query(
             r#"
-            delete from contact_request where endpoint = $1
+            delete from subscriptions where endpoint = $1
         "#,
         )
-        .bind(&ulid.to_string())
+        .bind(&id)
         .execute(&Self::power().await?)
         .await
         .unwrap();
@@ -124,7 +124,7 @@ impl Communicate<(SubscriptionInfo, User), PgPool> for (SubscriptionInfo, User) 
 
     async fn all() -> Result<Vec<(SubscriptionInfo, User)>, EyeError> {
         log::info!("Grabbing all subscriptions");
-        let rows = sqlx::query_as::<_, PgSubInfo>("select * from contact_request")
+        let rows = sqlx::query_as::<_, PgSubInfo>("select * from subscriptions")
             .fetch_all(&Self::power().await?)
             .await?
             .into_iter()

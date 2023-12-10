@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use leptos_axum::redirect;
 
 use super::errors::EyeError;
+use crate::push::transmit;
 
 static HOMEPAGE: Lazy<String> =
     Lazy::new(|| {
@@ -30,19 +31,19 @@ where
 {
     async fn power() -> Result<Dialect, EyeError>;
     async fn birth(&self) -> Result<(), EyeError>;
-    async fn destroy(ulid: Ulid) -> Result<(), EyeError>;
+    async fn destroy(id: String) -> Result<(), EyeError>;
     async fn all() -> Result<Vec<Subject>, EyeError>;
 }
 
     }
 );
 
+use js_sys::Atomics::notify;
 use leptos::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::info;
 use ulid::Ulid;
-
 
 use super::{Contact, MaybeUser, User};
 
@@ -60,7 +61,7 @@ pub async fn add_contact_request(
 #[server]
 pub async fn delete_contact_request(ulid: Ulid) -> Result<(), ServerFnError> {
     if reject_strangers().is_some() {
-        Contact::destroy(ulid).await?;
+        Contact::destroy(ulid.to_string()).await?;
     };
     Ok(())
 }
@@ -94,8 +95,34 @@ pub async fn perhaps_user() -> Result<MaybeUser, ServerFnError> {
 
 #[server(prefix = "/api", endpoint = "push-me")]
 pub async fn subscribe_to_push(json: String) -> Result<(), ServerFnError> {
+    if let Some(user) = reject_strangers() {
+        use web_push::SubscriptionInfo;
+        let info: SubscriptionInfo = serde_json::from_str(&json).unwrap();
+        // let demo = notify(&info, Some("Working".to_owned())).await;
+        // info!("Demo did: {:?}", &demo);
+        (info, user).birth().await?;
+        info!("Lagrat en ny prenumeration");
+    }
+    Ok(())
+}
+
+#[server(prefix = "/api", endpoint = "push-me-not")]
+pub async fn unsubscribe_to_push(json: String) -> Result<(), ServerFnError> {
+    if let Some(_) = reject_strangers() {
+        use web_push::SubscriptionInfo;
+        let info: SubscriptionInfo = serde_json::from_str(&json).unwrap();
+        <(SubscriptionInfo, User)>::destroy(info.endpoint).await?;
+        info!("Tagit bort en prenumeration");
+    }
+    Ok(())
+}
+
+#[server]
+pub async fn demo_push() -> Result<(), ServerFnError> {
     use web_push::SubscriptionInfo;
-    let info: SubscriptionInfo = serde_json::from_str(&json).unwrap();
-    info!("Recieved a push subscription: {:?}", info);
+    let subs = <(SubscriptionInfo, User)>::all().await?;
+    for (sub, _) in subs {
+       transmit::notify(&sub, Some("Demo av notifikation".to_owned())).await?;
+    }
     Ok(())
 }

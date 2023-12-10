@@ -1,6 +1,10 @@
 use base64::Engine;
 use leptos::create_action;
+use leptos::create_local_resource;
 use leptos::Action;
+use leptos::Resource;
+use leptos::Signal;
+use leptos_use::ServiceWorkerRegistrationError;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::PushManager;
@@ -9,32 +13,8 @@ use web_sys::ServiceWorkerRegistration;
 
 static PUSH_SERVER_PUBLIC_KEY: &'static str = env!("PUSH_SERVER_PUBLIC_KEY");
 
-// Main function to start the app
-// #[wasm_bindgen(start)]
-// pub async fn main() -> Result<(), JsValue> {
-//     let window = web_sys::window().expect("no global `window` exists");
-//     let navigator = window.navigator();
-
-//     if !navigator.service_worker().is_supported() || !PushManager::is_supported() {
-//         return Err(JsValue::from_str(
-//             "Service workers or Push API not supported",
-//         ));
-//     }
-
-//     let sw_container: ServiceWorkerContainer = navigator.service_worker();
-
-//     // Register service worker
-//     let promise = sw_container.register("/service-worker.js");
-//     let sw_registration: web_sys::ServiceWorkerRegistration =
-//         wasm_bindgen_futures::JsFuture::from(promise)
-//             .await?
-//             .dyn_into()?;
-
-//     // Request permission and handle push subscription
-//     initialise_push_notifications(sw_registration).await?;
-
-//     Ok(())
-// }
+#[cfg(feature = "ssr")]
+pub mod transmit;
 
 /// A leptos action which asynchronously creates or updates and than retrieves the ServiceWorkerRegistration.
 pub fn create_action_create_or_update_subscription(
@@ -51,6 +31,7 @@ pub fn create_action_create_or_update_subscription(
             options.application_server_key(Some(&key));
 
             let subscribe_promise = pm.subscribe_with_options(&options)?;
+            leptos::logging::log!("Lägger till en ny prenumeration i browsern!");
             wasm_bindgen_futures::JsFuture::from(subscribe_promise)
                 .await
                 .and_then(|ok| ok.dyn_into::<PushSubscription>())
@@ -58,13 +39,23 @@ pub fn create_action_create_or_update_subscription(
     })
 }
 
+pub fn create_action_undo_subscription() -> Action<PushSubscription, Result<JsValue, JsValue>> {
+    create_action(move |push_subscription: &PushSubscription| {
+        let sub = push_subscription.clone();
+        async move {
+            let unsubscribe_promise = sub.unsubscribe()?;
+            leptos::logging::log!("Tog bort prenumeration från browsern!");
+            wasm_bindgen_futures::JsFuture::from(unsubscribe_promise).await
+        }
+    })
+}
 
-pub fn create_action_see_subscription(
-) -> Action<PushManager, Result<PushSubscription, JsValue>> {
+pub fn create_action_see_subscription() -> Action<PushManager, Result<PushSubscription, JsValue>> {
     create_action(move |push_manager: &PushManager| {
         let pm = push_manager.clone();
         async move {
             let subscribe_promise = pm.get_subscription()?;
+            leptos::logging::log!("Ser om det finns en prenumeration i browsern!");
             wasm_bindgen_futures::JsFuture::from(subscribe_promise)
                 .await
                 .and_then(|ok| ok.dyn_into::<PushSubscription>())
