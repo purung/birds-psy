@@ -128,7 +128,7 @@ pub fn App() -> impl IntoView {
 fn HomePage() -> impl IntoView {
     view! {
         <main class="bg-base-100 relative min-h-[100svh]">
-            <div class="absolute top-0 left-4" >
+            <div class="absolute -top-10 right-2" >
                 <Updates />
             </div>
             <CardCollection />

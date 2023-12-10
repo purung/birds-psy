@@ -49,18 +49,6 @@ pub fn PushCompability() -> impl IntoView {
     }
 }
 
-#[component]
-pub fn PushDemo() -> impl IntoView {
-    let action = create_server_action::<DemoPush>();
-    view! { 
-        <ActionForm action=action >
-            <button type="submit" class="btn btn-ghost btn-circle text-3xl">
-                "🚀"
-            </button>
-        </ActionForm>
-    }
-}
-
 type SwReg = Signal<Result<ServiceWorkerRegistration, ServiceWorkerRegistrationError>>;
 
 #[component]
@@ -231,7 +219,7 @@ pub fn ContactCard(card: Contact, reversion: Callback<()>) -> impl IntoView {
     let tel_link = card.tel_link();
     let human_ts = card.human_timestamp();
     view! {
-        <div class="card w-96  relative bg-primary text-primary-content rounded-lg shadow-lg self-stretch">
+        <div class="card w-96 max-w-full relative bg-primary text-primary-content rounded-lg shadow-lg self-stretch">
           <div class="card-body">
             <h2 class="card-title mt-6 mb-3">{ card.name }</h2>
             <p>{ card.tel }</p>

@@ -3,13 +3,24 @@
 // 1. Version Control
 const CURRENT_CACHE = "<%= version %>"; // Change this version number when updating the service worker
 const PUSH_SERVER_URL = '/api/push-me';
-const BASE64_PUBKEY = "BA4NZv33DCXlOm1TUWLEiMM5n9GVar0BC7xyZWaCnbIS0PXsRNr-NsgojCzyITywztw5N_YSnFLoHJ7rwzLcLD0"
+const BASE64_PUBKEY = "BF7RxoTqAfn6llZbrpMetglkxszn9ooUGsuhhLYjX4z_aCRHukxNCVdvWUd-C-2fa3p3HXyi1gbG71_zcMhQtdY";
 
 // Assets to cache (can be an array of file URLs)
 const assetsToCache = [
     '/pkg/birds-psy.css',
     '/pkg/birds-psy.js',
     '/pkg/birds-psy.wasm',
+    '/icons/raccoon-72.png',
+    '/icons/raccoon-96.png',
+    '/icons/raccoon-128.png',
+    '/icons/raccoon-144.png',
+    '/icons/raccoon-152.png',
+    '/icons/raccoon-192.png',
+    '/icons/raccoon-384.png',
+    '/icons/raccoon-512.png',
+    '/icons/screenshot-narrow.png',
+    '/icons/screenshot-wide.png'
+    
     // Add more assets as required
 ];
 
