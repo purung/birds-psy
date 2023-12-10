@@ -19,6 +19,7 @@ self.addEventListener('install', event => {
 
     // Cache assets
     if (CURRENT_CACHE === "DEV") {
+        self.skipWaiting();
         return
     };
     event.waitUntil(
@@ -80,11 +81,11 @@ self.addEventListener('push', event => {
   console.log('Push message received.');
   
   // Customize this with the details of the push message
-  const title = 'New Notification';
+  const title = 'Ny förfrågan';
   const options = {
     body: event.data.text(),
-    icon: 'icon.png',
-    badge: 'badge.png'
+    icon: '/icons/raccoon-512.png',
+    badge: '/icons/racoon-72.png'
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -95,7 +96,8 @@ self.addEventListener('notificationclick', event => {
 
   event.notification.close();
 
-  const urlToOpen = new URL(examplePage, self.location.origin).href;
+  const urlToOpen = new URL("/", self.location.origin).href;
+    console.log(urlToOpen);
 
   // Handle notification click, for example, by opening a URL
   event.waitUntil(
