@@ -33,7 +33,7 @@ async fn main() -> Result<()> {
         .await?;
     }
 
-    let res = sqlx::query!("select * from contact_request").fetch_all(&pool).await?;
+    let res = sqlx::query("select * from contact_request").fetch_all(&pool).await?;
     for r in res {
         println!("{:?}", r);
     }
