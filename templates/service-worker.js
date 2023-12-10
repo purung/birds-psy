@@ -81,7 +81,7 @@ self.addEventListener('push', event => {
   console.log('Push message received.');
   
   // Customize this with the details of the push message
-  const title = 'Ny förfrågan';
+  const title = 'Uppringningslista';
   const options = {
     body: event.data.text(),
     icon: '/icons/raccoon-512.png',
