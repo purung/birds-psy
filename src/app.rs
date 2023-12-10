@@ -101,6 +101,7 @@ pub fn App() -> impl IntoView {
         <Title text="Ovanifrånvy"/>
         <Link rel="preconnect" href="https://fonts.googleapis.com"/>
         <Link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin"/>
+        <Link rel="manifest" href="/manifest.json" />
         <Link
             href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,300;0,400;0,700;1,400;1,700&display=swap"
             rel="stylesheet"
