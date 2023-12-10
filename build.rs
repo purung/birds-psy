@@ -10,13 +10,13 @@ fn main() {
         // use ulid::Ulid;
 
         let version = env::var("CARGO_PKG_VERSION").expect("CARGO_PKG_VERSION not set");
-        let profile = env::var("PROFILE").expect("CARGO PROFILE NOT SET");
+        // let profile = env::var("PROFILE").expect("CARGO PROFILE NOT SET");
 
-        let version = if matches!(profile.as_str(), "release") {
-            version
-        } else {
-            return
-        };
+        // let version = if matches!(profile.as_str(), "release") {
+        //     version
+        // } else {
+        //     return
+        // };
 
         use sailfish::TemplateOnce;
 
