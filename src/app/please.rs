@@ -5,6 +5,9 @@ cfg_if!( if #[cfg(feature = "ssr")] {
 use once_cell::sync::Lazy;
 use async_trait::async_trait;
 use leptos_axum::redirect;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use tracing::info;
 
 use super::errors::EyeError;
 use crate::push::transmit;
@@ -40,9 +43,6 @@ where
 
 
 use leptos::*;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-use tracing::info;
 use ulid::Ulid;
 
 use super::{Contact, MaybeUser, User};
