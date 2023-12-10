@@ -8,6 +8,8 @@ use leptos_axum::redirect;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::info;
+use tracing::error;
+use web_push::SubscriptionInfo;
 
 use super::errors::EyeError;
 use crate::push::transmit;
@@ -41,7 +43,6 @@ where
     }
 );
 
-
 use leptos::*;
 use ulid::Ulid;
 
@@ -54,6 +55,14 @@ pub async fn add_contact_request(
     special: String,
 ) -> Result<(), ServerFnError> {
     Contact::new(name, tel, Some(special)).birth().await?;
+    let subs = <(SubscriptionInfo, User)>::all().await;
+    match subs {
+        Ok(s) => transmit::notify_all(s.into_iter().map(|(sb,_)| sb).collect(), Some("Ny förfrågan om kontakt".to_owned())).await?,
+        Err(e) => error!(
+            ">>>>>>> Fel när push-prenumerationer skulle hämtas, ignorerar detta... {:?}",
+            e
+        ),
+    };
     redirect(&format!("{}/succe", *HOMEPAGE));
     Ok(())
 }
@@ -122,7 +131,7 @@ pub async fn demo_push() -> Result<(), ServerFnError> {
     use web_push::SubscriptionInfo;
     let subs = <(SubscriptionInfo, User)>::all().await?;
     for (sub, _) in subs {
-       transmit::notify(&sub, Some("Demo av notifikation".to_owned())).await?;
+        transmit::notify(&sub, Some("Demo av notifikation".to_owned())).await?;
     }
     Ok(())
 }

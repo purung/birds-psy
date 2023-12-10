@@ -1,7 +1,10 @@
+use futures::future::join_all;
 use std::env;
 use std::sync::Arc;
 use std::sync::RwLock;
+use tokio::task::spawn_local;
 use tracing::error;
+use tracing::info;
 
 use web_push::SubscriptionInfo;
 use web_push::WebPushClient;
@@ -12,7 +15,9 @@ use leptos::use_context;
 use once_cell::sync::Lazy;
 use web_push::{PartialVapidSignatureBuilder, VapidSignatureBuilder};
 
+use crate::app::Communicate;
 use crate::app::EyeError;
+use crate::app::User;
 
 static KEY: Lazy<PartialVapidSignatureBuilder> = Lazy::new(|| {
     let config = web_push::URL_SAFE_NO_PAD;
@@ -40,6 +45,67 @@ pub async fn notify(sub: &SubscriptionInfo, msg: Option<String>) -> Result<(), W
     };
     let message = message.build()?;
     client.send(message).await
+}
+
+pub async fn notify_all(
+    subscribers: Vec<SubscriptionInfo>,
+    msg: Option<String>,
+) -> Result<(), WebPushError> {
+    let mut futures = Vec::new();
+
+    for sub in subscribers.clone() {
+        let msg = msg.clone();
+        let future = spawn_local(async move { notify(&sub, msg).await });
+        futures.push(future)
+    }
+    let results = join_all(futures).await;
+
+    let mut to_unsubscibe = Vec::new();
+
+    for (sub, res) in subscribers.into_iter().zip(results) {
+        match res {
+            Ok(r) => match r {
+                Ok(_) => continue,
+                Err(e) => {
+                    use WebPushError as WPE;
+                    match e {
+                        WPE::Unauthorized
+                        | WPE::MissingCryptoKeys
+                        | WPE::InvalidCryptoKeys
+                        | WPE::InvalidUri
+                        | WPE::EndpointNotValid
+                        | WPE::EndpointNotFound => {
+                            info!("A problem with a subscription! Going to unsubscribe it...");
+                            to_unsubscibe.push(sub);
+                            continue;
+                        }
+                        _ => {
+                            error!(">>>>>>>>>>>> When pushing a notification: {:?}", e);
+                            continue;
+                        }
+                    }
+                }
+            },
+            Err(e) => {
+                error!(
+                    ">>>> Something happened during join of push futures: {:?}",
+                    e
+                )
+            }
+        }
+    }
+
+    let mut future_unsubscribes = Vec::new();
+
+    for sub in to_unsubscibe {
+        let future =
+            spawn_local(async move { <(SubscriptionInfo, User)>::destroy(sub.endpoint).await });
+        future_unsubscribes.push(future)
+    }
+
+    let _ = join_all(future_unsubscribes).await;
+
+    Ok(())
 }
 
 #[derive(Clone)]
