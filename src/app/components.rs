@@ -53,26 +53,19 @@ type SwReg = Signal<Result<ServiceWorkerRegistration, ServiceWorkerRegistrationE
 
 #[component]
 pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
-    // Har tillstånd & ingen subscribe
-    // Har inte tillstånd eller subscribe
-    // Har inte tillstånd men sub
     use crate::push::*;
     let permission = RwSignal::new(web_sys::Notification::permission().into());
     let subscribe = push::create_action_create_or_update_subscription();
     let unsubscribe = push::create_action_undo_subscription();
     let current_subscription = push::create_action_see_subscription();
+
     let push_enabled = Signal::derive(move || {
-        let curr = current_subscription.value();
-        with!(|curr, permission| {
-            if let (Some(Ok(_)), NotificationPermission::Granted) = (curr, permission) {
-                leptos::logging::log!("Push är igång");
-                return true;
-            } else {
-                leptos::logging::log!("Push är avstängt");
-                return false;
-            }
-        })
+        current_subscription
+            .value()
+            .get()
+            .is_some_and(|v| v.is_ok())
     });
+
     let refresh_current_subscription = move || {
         if let Ok(rw) = registration() {
             if let Ok(pm) = rw.push_manager() {
@@ -81,6 +74,7 @@ pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
             }
         }
     };
+
     let toggle_push = move |_| {
         if push_enabled() {
             // Det finns redan en push-prenumeration
@@ -93,7 +87,6 @@ pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
                 spawn_local(async move {
                     let _ = unsubscribe_to_push(json).await; // Ta bort på servern
                 });
-                refresh_current_subscription()
             }
         } else {
             // Det finns inte en push-prenumeration
@@ -113,25 +106,37 @@ pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
             }
         }
     };
+
+    // Centralisera förändringar i prenumeration till current
     create_effect(move |_| {
+        subscribe.value().get();
+        unsubscribe.value().get();
         refresh_current_subscription();
     });
-    create_effect(move |_| {
-        leptos::logging::log!("Kör autopilot");
 
-        if let (Ok(rwreg), NotificationPermission::Granted, Some(Err(_))) = (
-            registration(),
-            permission(),
-            current_subscription.value().get_untracked(),
-        ) {
-            if let Ok(pm) = rwreg.push_manager() {
-                leptos::logging::log!("Startar en ny pushprenumeration!");
-                subscribe.dispatch(pm);
-            } else {
-                leptos::logging::log!("No push manager!")
-            }
+    create_effect(move |prev_permission| {
+        leptos::logging::log!("Reagerar på förändring av permission");
+        let new_permission = permission.get();
+        let allowed = new_permission == NotificationPermission::Granted;
+        let from_previously_disallowed = new_permission != prev_permission.unwrap_or_default();
+        let not_subscribed = current_subscription
+            .value()
+            .get_untracked()
+            .is_some_and(|s| s.is_err());
+
+        if allowed && from_previously_disallowed && not_subscribed {
+            let Ok(Ok(pm)) = registration.get_untracked().map(|rg| rg.push_manager()) else {
+                return new_permission;
+            };
+            // Startar en ny prenumeration
+            leptos::logging::log!("Startar en ny prenumeration");
+            subscribe.dispatch(pm);
         }
+
+        new_permission
     });
+
+    // Reagerar på förändringar i prenumeration
     create_effect(move |_| {
         if let Some(Ok(subscription)) = subscribe.value().get() {
             leptos::logging::log!("Lagrar automatiskt en ny prenumeration!");
@@ -141,11 +146,9 @@ pub fn AskAboutUpdates(registration: SwReg) -> impl IntoView {
             spawn_local(async move {
                 let _ = subscribe_to_push(json).await;
             });
-            refresh_current_subscription();
-        } else {
-            leptos::logging::log!("Subscription not SomeOk!");
         }
     });
+
     view! {
         <button on:click=toggle_push type="button" class="btn btn-ghost text-primary btn-circle hover:text-accent">
             <Show when=push_enabled >
