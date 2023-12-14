@@ -1,4 +1,5 @@
 use futures::future::join_all;
+use tracing::warn;
 use std::env;
 use std::sync::Arc;
 use std::sync::RwLock;
@@ -75,7 +76,7 @@ pub async fn notify_all(
                         | WPE::InvalidUri
                         | WPE::EndpointNotValid
                         | WPE::EndpointNotFound => {
-                            info!("A problem with a subscription! Going to unsubscribe it...");
+                            info!(">>>>> A problem with a subscription! Going to unsubscribe it... {}", e);
                             to_unsubscibe.push(sub);
                             continue;
                         }
@@ -103,7 +104,17 @@ pub async fn notify_all(
         future_unsubscribes.push(future)
     }
 
-    let _ = join_all(future_unsubscribes).await;
+    let result = join_all(future_unsubscribes).await;
+
+    for res in result {
+        match res {
+            Ok(r) => match r {
+                Ok(_) => (),
+                Err(e) => warn!(">>>>> Något gick fel med att ta bort prenumeration: {}", e),
+            },
+            Err(e) => error!(">>>>> Internt fel med att ta bort prenumeration: {}", e),
+        }
+    }
 
     Ok(())
 }

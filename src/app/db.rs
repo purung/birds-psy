@@ -2,8 +2,11 @@ use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use leptos::use_context;
 use sqlx::PgPool;
+use tracing::error;
 use ulid::Ulid;
 use web_push::{SubscriptionInfo, SubscriptionKeys};
+
+use crate::error_template::ErrorTemplate;
 
 use super::{errors::EyeError, please::Communicate, Contact, User};
 
@@ -110,15 +113,23 @@ impl Communicate<(SubscriptionInfo, User), PgPool> for (SubscriptionInfo, User) 
     }
 
     async fn destroy(id: String) -> Result<(), EyeError> {
-        sqlx::query(
+        let pow = Self::power().await;
+        if pow.is_err() {
+            error!(">>>>> Where is ze engine? {:?}", pow);
+            return Err(EyeError::StorageError);
+        }
+        let des =sqlx::query(
             r#"
             delete from subscriptions where endpoint = $1
         "#,
         )
         .bind(&id)
-        .execute(&Self::power().await?)
-        .await
-        .unwrap();
+        .execute(&pow?)
+        .await;
+        if des.is_err() {
+            error!(">>>> Why no succeed destroy? {:?}", des);
+            des?;
+        }
         Ok(())
     }
 
