@@ -15,3 +15,4 @@ playwright/.cache/
 .env
 .pg
 public/service-worker.js
+.secrets
