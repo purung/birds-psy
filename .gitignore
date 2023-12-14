@@ -16,3 +16,4 @@ playwright/.cache/
 .pg
 public/service-worker.js
 .secrets
+public/icons/Raccoon PWA.png
