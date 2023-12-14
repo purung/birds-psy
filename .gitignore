@@ -15,8 +15,5 @@ playwright/.cache/
 .env
 .pg
 public/service-worker.js
-<<<<<<< push
-.secrets
 public/icons/Raccoon PWA.png
-=======
->>>>>>> ignorera public/sw
+.secrets
