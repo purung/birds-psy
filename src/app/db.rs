@@ -6,7 +6,7 @@ use tracing::error;
 use ulid::Ulid;
 use web_push::{SubscriptionInfo, SubscriptionKeys};
 
-use crate::error_template::ErrorTemplate;
+// use crate::error_template::ErrorTemplate;
 
 use super::{errors::EyeError, please::Communicate, Contact, User};
 

@@ -3,7 +3,7 @@ use chrono::{DateTime, Local};
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
-use strum::{EnumString, IntoStaticStr, EnumIter, AsRefStr};
+use strum::{AsRefStr, EnumIter, EnumString, IntoStaticStr};
 use ulid::Ulid;
 
 use serde::{Deserialize, Serialize};
@@ -37,7 +37,7 @@ impl MaybeUser {
     pub fn is_logged_in(&self) -> Result<(), EyeError> {
         match self {
             MaybeUser::User(_) => Ok(()),
-            _ => Err(EyeError::AuthError)
+            _ => Err(EyeError::AuthError),
         }
     }
 }
@@ -61,7 +61,6 @@ pub enum User {
     Maria,
     Admin,
 }
-
 
 impl Contact {
     fn new(name: String, tel: String, special: Option<String>) -> Self {
@@ -115,7 +114,7 @@ pub fn App() -> impl IntoView {
         }>
             <main>
                 <Routes>
-                    <Route path="" view=HomePage ssr=SsrMode::Async />
+                    <Route path="" view=HomePage  />
                     <Route path="/login" view=Login />
                 </Routes>
             </main>
@@ -123,15 +122,37 @@ pub fn App() -> impl IntoView {
     }
 }
 
-/// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
     view! {
-        <main class="bg-base-100 relative min-h-[100svh]">
+        <main class="bg-base-100 relative min-h-[100svh] pb-12">
             <div class="absolute -top-10 right-2" >
                 <Updates />
             </div>
-            <CardCollection />
+            <Suspense fallback=move || view! {<p>"Loading..."</p>}>
+                <UserLand />
+            </Suspense>
         </main>
+
+    }
+}
+
+/// Renders the home page of your application.
+#[component]
+fn UserLand() -> impl IntoView {
+    let (logged_in, set_logged_in) = create_signal(false);
+    let user = create_blocking_resource(move || logged_in(), |_| async move { current_user().await });
+    let login_required = Signal::derive(move || {
+        user.with(|u| u.as_ref().is_some_and(|r| r.is_err()))
+    });
+    view! {
+        <Suspense fallback=move || view! {<p>"Loading..."</p>}>
+            <Show when=login_required>
+                <LoginPortal auth=set_logged_in />
+            </Show>
+        </Suspense>
+        <Suspense>
+            <CardCollection auth=logged_in />
+        </Suspense>
     }
 }

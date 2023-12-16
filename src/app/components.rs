@@ -19,6 +19,7 @@ use crate::app::please::*;
 use crate::push;
 
 use super::Contact;
+use super::User;
 
 #[component]
 pub fn Updates() -> impl IntoView {
@@ -215,20 +216,82 @@ pub fn Login() -> impl IntoView {
 }
 
 #[component]
-pub fn ContactCard(card: Contact, reversion: Callback<()>) -> impl IntoView {
-    let dispose = create_server_action::<DeleteContactRequest>();
-    create_effect(move |_| {
-        dispose.version().get();
-        leptos::Callable::call(&reversion, ());
+pub fn LoginPortal(auth: WriteSignal<bool>) -> impl IntoView {
+    leptos::logging::log!("Jag vill logga in");
+    let gogogo = create_server_action::<LogMeIn>();
+    let error = Signal::derive(move || match gogogo.value().get() {
+        Some(r) => match r {
+            Ok(_) => None,
+            Err(e) => e.to_string().split_once(": ").map(|s| s.1.to_owned()),
+        },
+        None => None,
     });
+    create_effect(move |_| {
+        let v = gogogo.value().get();
+        if v.is_some_and(|x| x.is_ok()) {
+            auth.set(true)
+        }
+    });
+    view! {
+        <dialog open class="modal backdrop-blur-sm">
+            <div class="modal-box px-8 py-12 w-[90vw] max-w-sm bg-primary rounded-lg drop-shadow-xl duration-1000">
+                <ActionForm action=gogogo class="flex flex-col gap-8">
+                    <h4 class="text-lg text-primary-content text-center font-bold">Logga in</h4>
+                    <p class="text-center text-base-100 h-2">" "{ error }" "</p>
+                    <div class="form-contol">
+                        <label class="label text-primary-content">Namn</label>
+                        <input
+                            name="user"
+                            inputmode="text"
+                            autocomplete="username"
+                            required
+                            class="input input-bordered input-secondary w-full"
+                        />
+                    </div>
+                    <div class="form-control">
+                        <label class="label text-primary-content">Lösenord</label>
+                        <input
+                            name="password"
+                            type="password"
+                            autocomplete="current-password"
+                            required
+                            class="input input-bordered input-secondary w-full"
+                        />
+                    </div>
+                    <div class="form-control grow">
+                        <button
+                            class="btn btn-secondary btn-outline text-accent hover:btn-active"
+                            type="submit"
+                            id="skickaKnapp"
+                            >
+                            <Show when=move || gogogo.pending().get() fallback=move || view! {  <span id="skicka">Logga in</span> }>
+                                <span id="laddar" class="loading loading-dots loading-sm" > </span>
+                            </Show>
+                        </button>
+                    </div>
+                </ActionForm>
+            </div>
+        </dialog>
+    }
+}
+#[component]
+pub fn ContactCard(card: Contact) -> impl IntoView {
+    let dispose = create_server_action::<DeleteContactRequest>();
     let tel_link = card.tel_link();
     let human_ts = card.human_timestamp();
     view! {
-        <div class="card w-96 max-w-full relative bg-primary text-primary-content rounded-lg shadow-lg self-stretch">
+        <div 
+        class="card w-96 max-w-full transition duration-1000 relative rounded-lg shadow-lg self-stretch"
+        class=("bg-primary", move || dispose.version().get() == 0)
+        class=("text-primary-content", move || dispose.version().get() == 0)
+        class=("bg-primary/50", move || dispose.version().get() > 0)
+        class=("text-primary-content/50", move || dispose.version().get() > 0)
+        >
+
           <div class="card-body">
             <h2 class="card-title mt-6 mb-3">{ card.name }</h2>
             <p>{ card.tel }</p>
-            <p class="text-xs absolute right-0 top-0 p-4 text-secondary">{ human_ts }</p>
+            <p class="text-xs absolute right-0 top-0 p-4">{ human_ts }</p>
             <p class="my-6">{ card.special }</p>
             <div class="card-actions mt-24 justify-between content-center">
         <a href=tel_link class="btn btn-ghost btn-circle text-base-100/60 hover:text-base-100">
@@ -238,7 +301,11 @@ pub fn ContactCard(card: Contact, reversion: Callback<()>) -> impl IntoView {
         <ActionForm action=dispose >
             <input type="hidden" name="ulid" value=move || card.stamp.to_string() />
 
-            <button type="submit" class="btn btn-md btn-circle text-base-100/60 hover:text-base-100 btn-ghost">
+            <button 
+                type="submit" 
+                class="btn btn-md btn-circle text-base-100/60 hover:text-base-100 btn-ghost"
+                class=("opacity-0", move || {dispose.version().get() > 0})
+        >
                 <Icon class="w-full h-full" icon=Icon::from(IoIcon::IoCheckmarkDoneCircleSharp) />
             </button>
         </ActionForm>
@@ -249,13 +316,9 @@ pub fn ContactCard(card: Contact, reversion: Callback<()>) -> impl IntoView {
 }
 
 #[component]
-pub fn CardCollection() -> impl IntoView {
-    let r = create_resource(
-        || (),
-        |_| async move { all_contact_requests().await.unwrap_or_default() },
-    );
-    let cards = Signal::derive(move || r.get().unwrap_or_default());
-    let reversion = Callback::new(move |()| r.refetch());
+pub fn CardCollection(auth: ReadSignal<bool>) -> impl IntoView {
+    let r = create_resource(move || auth.get(), |_| async move { all_contact_requests().await });
+    let cards = Signal::derive(move || r.get().and_then(Result::ok).unwrap_or_default());
     view! {
         <Transition fallback=move || view! { <div class="place-self-center loading loading-dots text-base-100"></div> }>
             <ErrorBoundary fallback=move |_| view! {
@@ -270,8 +333,10 @@ pub fn CardCollection() -> impl IntoView {
                      <For
                         each=cards
                         key=|card| card.stamp
-                        children=move |card| view! { <ContactCard card reversion /> }
-                    />
+                        let:card
+                    >
+                        <ContactCard card />
+                </For>
                 </div>
             </ErrorBoundary>
         </Transition>

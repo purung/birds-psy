@@ -23,7 +23,6 @@ static HOMEPAGE: Lazy<String> =
 
 fn reject_strangers() -> Option<User> {
     let Some(MaybeUser::User(u)) = use_context::<MaybeUser>() else {
-        redirect("/login");
         return None
     };
     Some(u)
@@ -88,7 +87,6 @@ pub async fn all_contact_requests() -> Result<Vec<Contact>, ServerFnError> {
 pub async fn log_me_in(user: String, password: String) -> Result<(), ServerFnError> {
     use crate::auth::*;
     confirm_login_for(user, password).await?;
-    redirect("/");
     Ok(())
 }
 

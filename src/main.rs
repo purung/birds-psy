@@ -18,10 +18,20 @@ async fn main() {
     use tower_cookies::CookieManagerLayer;
     use tower_http::cors::CorsLayer;
 
-    simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");
+    
+
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        // Use the pretty formatter
+        .pretty()
+        // Use the settings from the environment
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .finish();
+
+    // Initialize the subscriber
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
     static MIGRATOR: Migrator = migrate!();
-
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
     // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
